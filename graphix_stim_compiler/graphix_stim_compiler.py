@@ -1,3 +1,5 @@
+"""Clifford compilation pass using stim functionalities."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, TypeAlias
@@ -15,41 +17,49 @@ if TYPE_CHECKING:
 
 
 class StimCliffordPass(CliffordMapCompilationPass):
+    """Compilation pass to synthetize a Clifford map by using stim's tableau synthesis.
+
+    This pass only handles unitaries (Clifford maps with the same number of input and ouptut nodes).
+
+    Gate set: H, S, CNOT
+    """
+
     @staticmethod
     def add_to_circuit(clifford_map: CliffordMap, circuit: Circuit | None = None, copy: bool = False) -> Circuit:
         """Add the Clifford map to a quantum circuit.
 
-        This method does not handle isometries yet (only unitaries).
-
         Parameters
         ----------
-        circuit : CircuitMBQC
+        clifford_map: CliffordMap
+            The Clifford map to be synthesized.
+        circuit : Circuit
             The quantum circuit to which the Clifford map is added.
         copy : bool, optional
-            If ``True``, operate on a deep copy of ``circuit`` and return it.
-            Otherwise, the input circuit is modified in place. Default is
-            ``False``.
+            If ``True``, operate on a deep copy of ``circuit`` and return it. Otherwise, the input circuit is modified in place. Default is ``False``.
 
         Returns
         -------
-        CircuitMBQC
-            The circuit with the Pauli exponential applied.
+        Circuit
+            The circuit with the Clifford map applied.
 
         Raises
         ------
         ValueError
-            If the input circuit is not compatible with ``self.output_nodes``.
+            If the input circuit is not compatible with ``clifford_map.output_nodes``.
+
         NotImplementedError
-            If the Clifford map represents an isometry, i.e., ``len(self.input_nodes) != len(self.output_nodes)``.
+            If the Clifford map represents an isometry, i.e., ``len(clifford_map.input_nodes) != len(clifford_map.output_nodes)``.
         """
-        circuit = initialize_circuit(clifford_map.output_nodes, circuit, copy)
+        circuit = initialize_circuit(
+            clifford_map.output_nodes, circuit, copy
+        )  # May raise ValueError or NotImplementedError
 
         stim_circuit = StimCliffordPass.to_stim_circuit(clifford_map, method="elimination")  # Gate set: H, S, CX
 
         # "Circuit" has no attribute "__iter__"
         # (but __len__ and __getitem__)
         instruction: stim.CircuitInstruction
-        for instruction in stim_circuit:
+        for instruction in stim_circuit:  # type: ignore[attr-defined]
             match instruction.name:
                 case "CX":
                     for control, target in instruction.target_groups():
@@ -65,6 +75,11 @@ class StimCliffordPass(CliffordMapCompilationPass):
     @staticmethod
     def clifford_map_to_stim_tableau(clifford_map: CliffordMap) -> stim.Tableau:
         """Transpile the Clifford map into a stim tableau.
+
+        Parameters
+        ----------
+        clifford_map: CliffordMap
+            The Clifford map to be transpiled.
 
         Returns
         -------
@@ -95,6 +110,8 @@ class StimCliffordPass(CliffordMapCompilationPass):
 
         Parameters
         ----------
+        clifford_map: CliffordMap
+            The Clifford map to be transpiled.
         method: Literal["elimination", "graph_state"]
             Stim method for synthetizing the circuit.
 
@@ -115,12 +132,14 @@ class StimCliffordPass(CliffordMapCompilationPass):
 
 
 def pauli_string_to_stim(ps: PauliString, outputs: Sequence[int]) -> stim.PauliString:
-    """Return a `stim.PauliString` instance.
+    """Transform a :class:`graphix.circ_extraction.extraction.PauliString` into a :class:`stim.PauliString` instance.
 
     This method assumes that the node sets in ``ps`` are pairwise disjoint.
 
     Parameters
     ----------
+    ps: PauliString
+        The Pauli string to be transformed.
     outputs : Sequence[int]
         Sequence of outputs nodes.
 
