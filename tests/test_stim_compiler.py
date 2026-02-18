@@ -10,6 +10,7 @@ from graphix.circ_ext.compilation import CompilationPass, LadderPass
 from graphix.circ_ext.extraction import PauliString
 from graphix.measurements import Measurement
 from graphix.opengraph import OpenGraph
+from graphix.parameter import Placeholder
 from graphix.random_objects import rand_circuit
 from numpy.random import Generator
 
@@ -136,3 +137,50 @@ class TestExtraction:
         state = circuit.simulate_statevector().statevec
         state_ref = pattern.simulate_pattern()
         assert state.isclose(state_ref)
+
+    def test_extract_og_gflow(self) -> None:
+        og = OpenGraph(
+            graph=nx.Graph([(1, 3), (2, 4), (3, 4), (3, 5), (4, 6)]),
+            input_nodes=[1, 2],
+            output_nodes=[5, 6],
+            measurements={
+                1: Measurement.XY(0.1),
+                2: Measurement.XY(0.2),
+                3: Measurement.XY(0.3),
+                4: Measurement.XY(0.4),
+            },
+        )
+        pattern = og.to_pattern()
+        cp = CompilationPass(LadderPass(), StimCliffordPass())
+        circuit = og.extract_gflow().extract_circuit().to_circuit(cp)
+
+        state = circuit.simulate_statevector().statevec
+        state_ref = pattern.simulate_pattern()
+        assert state.isclose(state_ref)
+
+    @pytest.mark.parametrize("test_case", [0.2, 0.5, 1.0])
+    def test_parametric_angles(self, test_case: float) -> None:
+        alpha = Placeholder("alpha")
+        alpha_val = test_case
+        flow = OpenGraph(
+            graph=nx.Graph([(1, 3), (2, 4), (3, 4), (3, 5), (4, 6)]),
+            input_nodes=[1, 2],
+            output_nodes=[5, 6],
+            measurements={
+                1: Measurement.XY(0.1),
+                2: Measurement.XY(alpha),
+                3: Measurement.XY(0.3),
+                4: Measurement.XY(alpha),
+            },
+        ).extract_pauli_flow()
+        cp = CompilationPass(LadderPass(), StimCliffordPass())
+
+        # Substitute parameter at the level of the extracted circuit
+        qc1 = flow.extract_circuit().to_circuit(cp)
+        s1 = qc1.subs(alpha, alpha_val).simulate_statevector().statevec
+
+        # Substitute parameter at the level of the flow object
+        qc2 = flow.subs(alpha, alpha_val).extract_circuit().to_circuit(cp)
+        s2 = qc2.simulate_statevector().statevec
+
+        assert s1.isclose(s2)
