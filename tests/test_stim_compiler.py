@@ -8,7 +8,6 @@ import pytest
 import stim
 from graphix.circ_ext.compilation import CompilationPass, LadderPass
 from graphix.circ_ext.extraction import PauliString
-from graphix.fundamentals import Plane
 from graphix.measurements import Measurement
 from graphix.opengraph import OpenGraph
 from graphix.random_objects import rand_circuit
@@ -53,11 +52,11 @@ class TestExtraction:
                 input_nodes=[0],
                 output_nodes=[5],
                 measurements={
-                    0: Measurement(0.1, Plane.XY),
-                    1: Measurement(0.2, Plane.XY),
-                    20: Measurement(0.3, Plane.XY),
-                    30: Measurement(0.4, Plane.XY),
-                    4: Measurement(0.5, Plane.XY),
+                    0: Measurement.XY(0.1),
+                    1: Measurement.XY(0.2),
+                    20: Measurement.XY(0.3),
+                    30: Measurement.XY(0.4),
+                    4: Measurement.XY(0.5),
                 },
             ),
             OpenGraph(
@@ -65,10 +64,10 @@ class TestExtraction:
                 input_nodes=[1, 2],
                 output_nodes=[5, 6],
                 measurements={
-                    1: Measurement(0.1, Plane.XY),
-                    2: Measurement(0.2, Plane.XY),
-                    3: Measurement(0.3, Plane.XY),
-                    4: Measurement(0.4, Plane.XY),
+                    1: Measurement.XY(0.1),
+                    2: Measurement.XY(0.2),
+                    3: Measurement.XY(0.3),
+                    4: Measurement.XY(0.4),
                 },
             ),
             OpenGraph(
@@ -76,9 +75,9 @@ class TestExtraction:
                 input_nodes=[1, 2, 3],
                 output_nodes=[4, 5, 6],
                 measurements={
-                    1: Measurement(0.1, Plane.XY),
-                    2: Measurement(0.2, Plane.XY),
-                    3: Measurement(0.3, Plane.XY),
+                    1: Measurement.XY(0.1),
+                    2: Measurement.XY(0.2),
+                    3: Measurement.XY(0.3),
                 },
             ),
             OpenGraph(
@@ -86,10 +85,10 @@ class TestExtraction:
                 input_nodes=[0, 1],
                 output_nodes=[4, 5],
                 measurements={
-                    0: Measurement(0.1, Plane.XY),
-                    1: Measurement(0.1, Plane.XY),
-                    2: Measurement(0.2, Plane.XZ),
-                    3: Measurement(0.3, Plane.YZ),
+                    0: Measurement.XY(0.1),
+                    1: Measurement.XY(0.1),
+                    2: Measurement.XZ(0.2),
+                    3: Measurement.YZ(0.3),
                 },
             ),
             OpenGraph(
@@ -97,10 +96,10 @@ class TestExtraction:
                 input_nodes=[0],
                 output_nodes=[4],
                 measurements={
-                    0: Measurement(0.1, Plane.XY),  # XY
-                    1: Measurement(0, Plane.XY),  # X
-                    2: Measurement(0.1, Plane.XY),  # XY
-                    3: Measurement(0, Plane.XY),  # X
+                    0: Measurement.XY(0.1),  # XY
+                    1: Measurement.X,  # X
+                    2: Measurement.XY(0.1),  # XY
+                    3: Measurement.X,  # X
                 },
             ),
             OpenGraph(
@@ -108,8 +107,8 @@ class TestExtraction:
                 input_nodes=[0],
                 output_nodes=[2],
                 measurements={
-                    0: Measurement(0.1, Plane.XY),  # XY
-                    1: Measurement(0.5, Plane.YZ),  # Y
+                    0: Measurement.XY(0.1),  # XY
+                    1: Measurement.Y,  # Y
                 },
             ),
             OpenGraph(
@@ -117,12 +116,12 @@ class TestExtraction:
                 input_nodes=[0, 1],
                 output_nodes=[6, 7],
                 measurements={
-                    0: Measurement(0.1, Plane.XY),  # XY
-                    1: Measurement(0.1, Plane.XY),  # XY
-                    2: Measurement(0.0, Plane.XY),  # X
-                    3: Measurement(0.1, Plane.XY),  # XY
-                    4: Measurement(0.0, Plane.XY),  # X
-                    5: Measurement(0.5, Plane.XY),  # Y
+                    0: Measurement.XY(0.1),  # XY
+                    1: Measurement.XY(0.1),  # XY
+                    2: Measurement.X,  # X
+                    3: Measurement.XY(0.1),  # XY
+                    4: Measurement.X,  # X
+                    5: Measurement.Y,  # Y
                 },
             ),
         ],
@@ -130,8 +129,10 @@ class TestExtraction:
     def test_extract_og(self, test_case: OpenGraph[Measurement]) -> None:
         pattern = test_case.to_pattern()
         cp = CompilationPass(LadderPass(), StimCliffordPass())
-        circuit = pattern.extract_opengraph().extract_pauli_flow().extract_circuit().to_circuit(cp)
+        circuit = (
+            pattern.extract_opengraph().infer_pauli_measurements().extract_pauli_flow().extract_circuit().to_circuit(cp)
+        )
 
         state = circuit.simulate_statevector().statevec
         state_ref = pattern.simulate_pattern()
-        assert np.abs(np.dot(state.flatten().conjugate(), state_ref.flatten())) == pytest.approx(1)
+        assert state.isclose(state_ref)
