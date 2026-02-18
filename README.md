@@ -23,12 +23,11 @@ qc.rx(1, 0.2 * ANGLE_PI)
 pattern = qc.transpile().pattern
 
 cp = CompilationPass(LadderPass(), StimCliffordPass())
-qc_extracted = pattern.extract_opengraph().extract_pauli_flow().extract_circuit().to_circuit(cp)
+qc_extracted = pattern.extract_opengraph().infer_pauli_measurements().extract_pauli_flow().extract_circuit().to_circuit(cp)
 
 s_ref = qc.simulate_statevector().statevec
 s_extracted = qc_extracted.simulate_statevector().statevec
-fidelity = np.abs(np.dot(s_ref.flatten().conjugate(), s_extracted.flatten()))
-assert np.isclose(fidelity, 1)
+assert s_ref.isclose(s_extracted)
 ```
 
 
