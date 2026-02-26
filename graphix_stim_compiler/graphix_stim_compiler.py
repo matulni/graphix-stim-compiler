@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal, TypeAlias
 
 import stim
-from graphix.circ_ext.compilation import CliffordMapCompilationPass, initialize_circuit
+from graphix.circ_ext.compilation import CliffordMapCompilationPass
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -25,7 +25,7 @@ class StimCliffordPass(CliffordMapCompilationPass):
     """
 
     @staticmethod
-    def add_to_circuit(clifford_map: CliffordMap, circuit: Circuit | None = None, copy: bool = False) -> Circuit:
+    def add_to_circuit(clifford_map: CliffordMap, circuit: Circuit) -> None:
         """Add the Clifford map to a quantum circuit.
 
         Parameters
@@ -50,10 +50,6 @@ class StimCliffordPass(CliffordMapCompilationPass):
         NotImplementedError
             If the Clifford map represents an isometry, i.e., ``len(clifford_map.input_nodes) != len(clifford_map.output_nodes)``.
         """
-        circuit = initialize_circuit(
-            clifford_map.output_nodes, circuit, copy
-        )  # May raise ValueError or NotImplementedError
-
         stim_circuit = StimCliffordPass.to_stim_circuit(clifford_map, method="elimination")  # Gate set: H, S, CX
 
         # "Circuit" has no attribute "__iter__"
@@ -70,7 +66,6 @@ class StimCliffordPass(CliffordMapCompilationPass):
                 case "S":
                     for (qubit,) in instruction.target_groups():
                         circuit.s(qubit.qubit_value)
-        return circuit
 
     @staticmethod
     def clifford_map_to_stim_tableau(clifford_map: CliffordMap) -> stim.Tableau:
@@ -155,7 +150,7 @@ def pauli_string_to_stim(ps: PauliString, outputs: Sequence[int]) -> stim.PauliS
     if not set(ps.x_nodes | ps.y_nodes | ps.z_nodes).issubset(outputs):
         raise ValueError("The Pauli string contains nodes which are not in `outputs`.")
 
-    pauli_str: list[str] = ["-" if ps.negative_sign else "+"]
+    pauli_str: list[str] = [str(ps.sign)]
     for node in outputs:
         if node in ps.x_nodes:
             pauli_str.append("X")
