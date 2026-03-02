@@ -8,7 +8,6 @@ import stim
 from graphix.circ_ext.compilation import CliffordMapCompilationPass
 
 if TYPE_CHECKING:
-
     from graphix.circ_ext.extraction import CliffordMap, PauliString
     from graphix.transpiler import Circuit
 
@@ -80,9 +79,9 @@ class StimCliffordPass(CliffordMapCompilationPass):
         zs: list[stim.PauliString] = []
         n_qubits = len(clifford_map.output_nodes)
 
-        for node in clifford_map.input_nodes:
-            xs.append(pauli_string_to_stim(clifford_map.x_map[node], n_qubits))
-            zs.append(pauli_string_to_stim(clifford_map.z_map[node], n_qubits))
+        for qubit in range(n_qubits):
+            xs.append(pauli_string_to_stim(clifford_map.x_map[qubit], n_qubits))
+            zs.append(pauli_string_to_stim(clifford_map.z_map[qubit], n_qubits))
 
         return stim.Tableau.from_conjugated_generators(xs=xs, zs=zs)
 
