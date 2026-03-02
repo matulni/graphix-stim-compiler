@@ -8,8 +8,6 @@ import stim
 from graphix.circ_ext.compilation import CliffordMapCompilationPass
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from graphix.circ_ext.extraction import CliffordMap, PauliString
     from graphix.transpiler import Circuit
 
@@ -28,14 +26,16 @@ class StimCliffordPass(CliffordMapCompilationPass):
     def add_to_circuit(clifford_map: CliffordMap, circuit: Circuit) -> None:
         """Add the Clifford map to a quantum circuit.
 
+        The input circuit is modified in-place.
+
+        Methods defined in this class must assume that the Pauli Exponential DAG has been remap, i.e., its Pauli strings are defined on qubit indices and not on node values. See :meth:`PauliString.remap` for additional information.
+
         Parameters
         ----------
         clifford_map: CliffordMap
             The Clifford map to be synthesized.
         circuit : Circuit
             The quantum circuit to which the Clifford map is added.
-        copy : bool, optional
-            If ``True``, operate on a deep copy of ``circuit`` and return it. Otherwise, the input circuit is modified in place. Default is ``False``.
 
         Returns
         -------
@@ -92,10 +92,11 @@ class StimCliffordPass(CliffordMapCompilationPass):
 
         xs: list[stim.PauliString] = []
         zs: list[stim.PauliString] = []
+        n_qubits = len(clifford_map.output_nodes)
 
         for node in clifford_map.input_nodes:
-            xs.append(pauli_string_to_stim(clifford_map.x_map[node], clifford_map.output_nodes))
-            zs.append(pauli_string_to_stim(clifford_map.z_map[node], clifford_map.output_nodes))
+            xs.append(pauli_string_to_stim(clifford_map.x_map[node], n_qubits))
+            zs.append(pauli_string_to_stim(clifford_map.z_map[node], n_qubits))
 
         return stim.Tableau.from_conjugated_generators(xs=xs, zs=zs)
 
@@ -126,17 +127,17 @@ class StimCliffordPass(CliffordMapCompilationPass):
         return StimCliffordPass.clifford_map_to_stim_tableau(clifford_map).to_circuit(method)
 
 
-def pauli_string_to_stim(ps: PauliString, outputs: Sequence[int]) -> stim.PauliString:
+def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
     """Transform a :class:`graphix.circ_extraction.extraction.PauliString` into a :class:`stim.PauliString` instance.
 
-    This method assumes that the node sets in ``ps`` are pairwise disjoint.
+    This method assumes that the qubit sets in ``ps`` are pairwise disjoint. It also assumes that the Pauli string has been remap, i.e., it is defined on qubit indices and not on node values. See :meth:`graphix.circ_ext.PauliString.remap` for additional information.
 
     Parameters
     ----------
     ps: PauliString
         The Pauli string to be transformed.
-    outputs : Sequence[int]
-        Sequence of outputs nodes.
+    n_qubits : int
+        Width of the circuit on which the Pauli string is defined.
 
     Returns
     -------
@@ -145,18 +146,18 @@ def pauli_string_to_stim(ps: PauliString, outputs: Sequence[int]) -> stim.PauliS
 
     Notes
     -----
-    Output nodes not appearing in `ps.x_nodes | ps.y_nodes | ps.z_nodes` are assigned the identity operator in the returned `stim.PauliString`.
+    Qubits not appearing in `ps.x_nodes | ps.y_nodes | ps.z_nodes` are assigned the identity operator in the returned `stim.PauliString`.
     """
-    if not set(ps.x_nodes | ps.y_nodes | ps.z_nodes).issubset(outputs):
-        raise ValueError("The Pauli string contains nodes which are not in `outputs`.")
+    if not set(ps.x_nodes | ps.y_nodes | ps.z_nodes).issubset(range(n_qubits)):
+        raise ValueError("The Pauli string contains qubit indices beyond the circuit's width.")
 
     pauli_str: list[str] = [str(ps.sign)]
-    for node in outputs:
-        if node in ps.x_nodes:
+    for qubit in range(n_qubits):
+        if qubit in ps.x_nodes:
             pauli_str.append("X")
-        elif node in ps.y_nodes:
+        elif qubit in ps.y_nodes:
             pauli_str.append("Y")
-        elif node in ps.z_nodes:
+        elif qubit in ps.z_nodes:
             pauli_str.append("Z")
         else:
             pauli_str.append("_")

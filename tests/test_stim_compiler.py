@@ -25,7 +25,7 @@ class TestStimCliffordPass:
     def test_pauli_string_to_stim(self) -> None:
         p_str = PauliString(x_nodes={1, 4}, y_nodes={2}, z_nodes={5}, sign=Sign.MINUS)
 
-        stim_str = pauli_string_to_stim(p_str, outputs=range(7))
+        stim_str = pauli_string_to_stim(p_str, n_qubits=7)
 
         assert stim_str == stim.PauliString("-_XY_XZ_")
 
@@ -116,7 +116,7 @@ class TestExtraction:
             OpenGraph(
                 graph=nx.Graph([(0, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5), (4, 6), (5, 7)]),
                 input_nodes=[0, 1],
-                output_nodes=[6, 7],
+                output_nodes=[7, 6],
                 measurements={
                     0: Measurement.XY(0.1),  # XY
                     1: Measurement.XY(0.1),  # XY
