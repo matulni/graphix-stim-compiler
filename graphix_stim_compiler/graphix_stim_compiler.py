@@ -8,6 +8,7 @@ import stim
 from graphix.circ_ext.compilation import CliffordMapCompilationPass
 
 if TYPE_CHECKING:
+
     from graphix.circ_ext.extraction import CliffordMap, PauliString
     from graphix.transpiler import Circuit
 
@@ -28,27 +29,12 @@ class StimCliffordPass(CliffordMapCompilationPass):
 
         The input circuit is modified in-place.
 
-        Methods defined in this class must assume that the Pauli Exponential DAG has been remap, i.e., its Pauli strings are defined on qubit indices and not on node values. See :meth:`PauliString.remap` for additional information.
-
         Parameters
         ----------
         clifford_map: CliffordMap
             The Clifford map to be synthesized.
         circuit : Circuit
             The quantum circuit to which the Clifford map is added.
-
-        Returns
-        -------
-        Circuit
-            The circuit with the Clifford map applied.
-
-        Raises
-        ------
-        ValueError
-            If the input circuit is not compatible with ``clifford_map.output_nodes``.
-
-        NotImplementedError
-            If the Clifford map represents an isometry, i.e., ``len(clifford_map.input_nodes) != len(clifford_map.output_nodes)``.
         """
         stim_circuit = StimCliffordPass.to_stim_circuit(clifford_map, method="elimination")  # Gate set: H, S, CX
 
@@ -115,11 +101,6 @@ class StimCliffordPass(CliffordMapCompilationPass):
         -------
         stim.Circuit
 
-        Raises
-        ------
-        NotImplementedError
-            If ``len(self.input_nodes) != len(self.output_nodes)``.
-
         Notes
         -----
         See https://github.com/quantumlib/Stim/blob/main/doc/python_api_reference_vDev.md#stim.Tableau.to_circuit for additional information.
@@ -144,9 +125,14 @@ def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
     stim.PauliString
         The Pauli string in `stim` format.
 
+    Raises
+    ------
+    ValueError
+        If the Pauli string is not compatible with ``n_qubits``.
+
     Notes
     -----
-    Qubits not appearing in `ps.x_nodes | ps.y_nodes | ps.z_nodes` are assigned the identity operator in the returned `stim.PauliString`.
+    Qubits not appearing in ``ps.x_nodes | ps.y_nodes | ps.z_nodes`` are assigned the identity operator in the returned `stim.PauliString`.
     """
     if not set(ps.x_nodes | ps.y_nodes | ps.z_nodes).issubset(range(n_qubits)):
         raise ValueError("The Pauli string contains qubit indices beyond the circuit's width.")
