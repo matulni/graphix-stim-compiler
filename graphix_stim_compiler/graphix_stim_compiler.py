@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal, TypeAlias
 
 import stim
-from graphix.circ_ext.compilation import CliffordMapCompilationPass
 
 if TYPE_CHECKING:
     from graphix.circ_ext.extraction import CliffordMap, PauliString
@@ -14,7 +13,7 @@ if TYPE_CHECKING:
     _SYNTH_METHOD: TypeAlias = Literal["elimination", "graph_state"]
 
 
-class StimCliffordPass(CliffordMapCompilationPass):
+def clifford_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
     """Compilation pass to synthetize a Clifford map by using stim's tableau synthesis.
 
     This pass only handles unitaries (Clifford maps with the same number of input and ouptut nodes).
@@ -22,37 +21,6 @@ class StimCliffordPass(CliffordMapCompilationPass):
     Gate set: H, S, CNOT
     """
 
-    @staticmethod
-    def add_to_circuit(clifford_map: CliffordMap, circuit: Circuit) -> None:
-        """Add the Clifford map to a quantum circuit.
-
-        The input circuit is modified in-place.
-
-        Parameters
-        ----------
-        clifford_map: CliffordMap
-            The Clifford map to be synthesized.
-        circuit : Circuit
-            The quantum circuit to which the Clifford map is added.
-        """
-        stim_circuit = StimCliffordPass.to_stim_circuit(clifford_map, method="elimination")  # Gate set: H, S, CX
-
-        # "Circuit" has no attribute "__iter__"
-        # (but __len__ and __getitem__)
-        instruction: stim.CircuitInstruction
-        for instruction in stim_circuit:  # type: ignore[attr-defined]
-            match instruction.name:
-                case "CX":
-                    for control, target in instruction.target_groups():
-                        circuit.cnot(control.qubit_value, target.qubit_value)
-                case "H":
-                    for (qubit,) in instruction.target_groups():
-                        circuit.h(qubit.qubit_value)
-                case "S":
-                    for (qubit,) in instruction.target_groups():
-                        circuit.s(qubit.qubit_value)
-
-    @staticmethod
     def clifford_map_to_stim_tableau(clifford_map: CliffordMap) -> stim.Tableau:
         """Transpile the Clifford map into a stim tableau.
 
@@ -85,7 +53,6 @@ class StimCliffordPass(CliffordMapCompilationPass):
 
         return stim.Tableau.from_conjugated_generators(xs=xs, zs=zs)
 
-    @staticmethod
     def to_stim_circuit(clifford_map: CliffordMap, method: _SYNTH_METHOD) -> stim.Circuit:
         """Transpile the Clifford map into a stim circuit.
 
@@ -104,7 +71,28 @@ class StimCliffordPass(CliffordMapCompilationPass):
         -----
         See https://github.com/quantumlib/Stim/blob/main/doc/python_api_reference_vDev.md#stim.Tableau.to_circuit for additional information.
         """
-        return StimCliffordPass.clifford_map_to_stim_tableau(clifford_map).to_circuit(method)
+        return clifford_map_to_stim_tableau(clifford_map).to_circuit(method)
+
+    stim_circuit = to_stim_circuit(clifford_map, method="elimination")  # Gate set: H, S, CX
+
+    # "Circuit" has no attribute "__iter__"
+    # (but __len__ and __getitem__)
+    instruction: stim.CircuitInstruction
+    for instruction in stim_circuit:  # type: ignore[attr-defined]
+        match instruction.name:
+            case "CX":
+                for control, target in instruction.target_groups():
+                    assert control.qubit_value is not None
+                    assert target.qubit_value is not None
+                    circuit.cnot(control.qubit_value, target.qubit_value)
+            case "H":
+                for (qubit,) in instruction.target_groups():
+                    assert qubit.qubit_value is not None
+                    circuit.h(qubit.qubit_value)
+            case "S":
+                for (qubit,) in instruction.target_groups():
+                    assert qubit.qubit_value is not None
+                    circuit.s(qubit.qubit_value)
 
 
 def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
