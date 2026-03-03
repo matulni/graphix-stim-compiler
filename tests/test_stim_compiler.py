@@ -6,7 +6,6 @@ import networkx as nx
 import numpy as np
 import pytest
 import stim
-from graphix.circ_ext.compilation import CompilationPass, LadderPass
 from graphix.circ_ext.extraction import PauliString
 from graphix.fundamentals import Sign
 from graphix.measurements import Measurement
@@ -15,7 +14,7 @@ from graphix.parameter import Placeholder
 from graphix.random_objects import rand_circuit
 from numpy.random import Generator
 
-from graphix_stim_compiler import StimCliffordPass, pauli_string_to_stim
+from graphix_stim_compiler import clifford_stim_pass, pauli_string_to_stim
 
 if TYPE_CHECKING:
     from numpy.random import PCG64
@@ -39,8 +38,9 @@ class TestExtraction:
         circuit_ref = rand_circuit(nqubits, depth, rng, use_ccx=False)
         pattern = circuit_ref.transpile().pattern
 
-        cp = CompilationPass(LadderPass(), StimCliffordPass())
-        circuit = pattern.extract_opengraph().extract_pauli_flow().extract_circuit().to_circuit(cp)
+        circuit = (
+            pattern.extract_opengraph().extract_pauli_flow().extract_circuit().to_circuit(cm_cp=clifford_stim_pass)
+        )
 
         s_ref = circuit.simulate_statevector().statevec
         s_test = circuit_ref.simulate_statevector().statevec
@@ -130,9 +130,12 @@ class TestExtraction:
     )
     def test_extract_og(self, test_case: OpenGraph[Measurement]) -> None:
         pattern = test_case.to_pattern()
-        cp = CompilationPass(LadderPass(), StimCliffordPass())
         circuit = (
-            pattern.extract_opengraph().infer_pauli_measurements().extract_pauli_flow().extract_circuit().to_circuit(cp)
+            pattern.extract_opengraph()
+            .infer_pauli_measurements()
+            .extract_pauli_flow()
+            .extract_circuit()
+            .to_circuit(cm_cp=clifford_stim_pass)
         )
 
         state = circuit.simulate_statevector().statevec
@@ -152,8 +155,7 @@ class TestExtraction:
             },
         )
         pattern = og.to_pattern()
-        cp = CompilationPass(LadderPass(), StimCliffordPass())
-        circuit = og.extract_gflow().extract_circuit().to_circuit(cp)
+        circuit = og.extract_gflow().extract_circuit().to_circuit(cm_cp=clifford_stim_pass)
 
         state = circuit.simulate_statevector().statevec
         state_ref = pattern.simulate_pattern()
@@ -174,14 +176,13 @@ class TestExtraction:
                 4: Measurement.XY(alpha),
             },
         ).extract_pauli_flow()
-        cp = CompilationPass(LadderPass(), StimCliffordPass())
 
         # Substitute parameter at the level of the extracted circuit
-        qc1 = flow.extract_circuit().to_circuit(cp)
+        qc1 = flow.extract_circuit().to_circuit(cm_cp=clifford_stim_pass)
         s1 = qc1.subs(alpha, alpha_val).simulate_statevector().statevec
 
         # Substitute parameter at the level of the flow object
-        qc2 = flow.subs(alpha, alpha_val).extract_circuit().to_circuit(cp)
+        qc2 = flow.subs(alpha, alpha_val).extract_circuit().to_circuit(cm_cp=clifford_stim_pass)
         s2 = qc2.simulate_statevector().statevec
 
         assert s1.isclose(s2)
