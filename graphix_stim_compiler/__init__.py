@@ -1,9 +1,9 @@
-"""Stim backend for Graphix."""
+"""Stim compiler pass for Graphix."""
 
 from graphix_stim_compiler.graphix_stim_compiler import (
-    clifford_stim_pass, pauli_string_to_stim
+    cm_stim_pass, pauli_string_to_stim
 )
 
 __all__ = [
-    "clifford_stim_pass", "pauli_string_to_stim"
+    "cm_stim_pass", "pauli_string_to_stim"
 ]

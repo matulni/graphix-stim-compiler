@@ -6,8 +6,7 @@ This compilation pass together with the new tools implemented in `matulni/graphi
 
 ### Example
 ```python
-from graphix.circ_ext.compilation import CompilationPass, LadderPass
-from graphix_stim_compiler import StimCliffordPass
+from graphix_stim_compiler import cm_stim_pass
 
 from graphix.transpiler import Circuit
 from graphix.fundamentals import ANGLE_PI
@@ -22,8 +21,7 @@ qc.rx(1, 0.2 * ANGLE_PI)
 
 pattern = qc.transpile().pattern
 
-cp = CompilationPass(LadderPass(), StimCliffordPass())
-qc_extracted = pattern.extract_opengraph().infer_pauli_measurements().extract_pauli_flow().extract_circuit().to_circuit(cp)
+qc_extracted = pattern.extract_opengraph().infer_pauli_measurements().extract_pauli_flow().extract_circuit().to_circuit(cm_cp=cm_stim_pass)
 
 s_ref = qc.simulate_statevector().statevec
 s_extracted = qc_extracted.simulate_statevector().statevec
