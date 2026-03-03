@@ -1,4 +1,4 @@
-"""Clifford compilation pass using stim functionalities."""
+"""Compilation pass for Clifford maps using stim functionalities."""
 
 from __future__ import annotations
 
@@ -13,9 +13,20 @@ if TYPE_CHECKING:
     _SYNTH_METHOD: TypeAlias = Literal["elimination", "graph_state"]
 
 
-def clifford_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
-    """Compilation pass to synthetize a Clifford map by using stim's tableau synthesis.
+def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
+    """Add a Clifford map to a circuit by using stim's tableau synthesis.
 
+    The input circuit is modified in-place. This function assumes that the Clifford Map has been remap, i.e., its Pauli strings are defined on qubit indices instead of output nodes. See :meth:`PauliString.remap` for additional information.
+
+    Parameters
+    ----------
+    pexp_dag: PauliExponentialDAG
+        The Pauli exponential rotation to be added to the circuit. Its Pauli strings are assumed to be defined on qubit indices.
+    circuit : Circuit
+        The circuit to which the operation is added. The input circuit is assumed to be compatible with ``pexp_dag.output_nodes``.
+
+    Notes
+    -----
     This pass only handles unitaries (Clifford maps with the same number of input and ouptut nodes).
 
     Gate set: H, S, CNOT

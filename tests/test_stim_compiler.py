@@ -14,7 +14,7 @@ from graphix.parameter import Placeholder
 from graphix.random_objects import rand_circuit
 from numpy.random import Generator
 
-from graphix_stim_compiler import clifford_stim_pass, pauli_string_to_stim
+from graphix_stim_compiler import cm_stim_pass, pauli_string_to_stim
 
 if TYPE_CHECKING:
     from numpy.random import PCG64
@@ -38,9 +38,7 @@ class TestExtraction:
         circuit_ref = rand_circuit(nqubits, depth, rng, use_ccx=False)
         pattern = circuit_ref.transpile().pattern
 
-        circuit = (
-            pattern.extract_opengraph().extract_pauli_flow().extract_circuit().to_circuit(cm_cp=clifford_stim_pass)
-        )
+        circuit = pattern.extract_opengraph().extract_pauli_flow().extract_circuit().to_circuit(cm_cp=cm_stim_pass)
 
         s_ref = circuit.simulate_statevector().statevec
         s_test = circuit_ref.simulate_statevector().statevec
@@ -135,7 +133,7 @@ class TestExtraction:
             .infer_pauli_measurements()
             .extract_pauli_flow()
             .extract_circuit()
-            .to_circuit(cm_cp=clifford_stim_pass)
+            .to_circuit(cm_cp=cm_stim_pass)
         )
 
         state = circuit.simulate_statevector().statevec
@@ -155,7 +153,7 @@ class TestExtraction:
             },
         )
         pattern = og.to_pattern()
-        circuit = og.extract_gflow().extract_circuit().to_circuit(cm_cp=clifford_stim_pass)
+        circuit = og.extract_gflow().extract_circuit().to_circuit(cm_cp=cm_stim_pass)
 
         state = circuit.simulate_statevector().statevec
         state_ref = pattern.simulate_pattern()
@@ -178,11 +176,11 @@ class TestExtraction:
         ).extract_pauli_flow()
 
         # Substitute parameter at the level of the extracted circuit
-        qc1 = flow.extract_circuit().to_circuit(cm_cp=clifford_stim_pass)
+        qc1 = flow.extract_circuit().to_circuit(cm_cp=cm_stim_pass)
         s1 = qc1.subs(alpha, alpha_val).simulate_statevector().statevec
 
         # Substitute parameter at the level of the flow object
-        qc2 = flow.subs(alpha, alpha_val).extract_circuit().to_circuit(cm_cp=clifford_stim_pass)
+        qc2 = flow.subs(alpha, alpha_val).extract_circuit().to_circuit(cm_cp=cm_stim_pass)
         s2 = qc2.simulate_statevector().statevec
 
         assert s1.isclose(s2)
