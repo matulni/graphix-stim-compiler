@@ -29,7 +29,10 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - run: python -m pip install --upgrade pip
+      - name: Setup project
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
 
       - name: Setup pytest
         run: pip install -c requirements-dev.txt pytest
