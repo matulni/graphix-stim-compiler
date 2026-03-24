@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal, TypeAlias
 
 import stim
+from graphix.fundamentals import Sign
 
 if TYPE_CHECKING:
     from graphix.circ_ext.extraction import CliffordMap, PauliString
@@ -132,18 +133,12 @@ def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
     -----
     Qubits not appearing in ``ps.x_nodes | ps.y_nodes | ps.z_nodes`` are assigned the identity operator in the returned `stim.PauliString`.
     """
-    if not set(ps.x_nodes | ps.y_nodes | ps.z_nodes).issubset(range(n_qubits)):
+    if not all(0 <= node < n_qubits for node in ps.axes):
         raise ValueError("The Pauli string contains qubit indices beyond the circuit's width.")
 
-    pauli_str: list[str] = [str(ps.sign)]
-    for qubit in range(n_qubits):
-        if qubit in ps.x_nodes:
-            pauli_str.append("X")
-        elif qubit in ps.y_nodes:
-            pauli_str.append("Y")
-        elif qubit in ps.z_nodes:
-            pauli_str.append("Z")
-        else:
-            pauli_str.append("_")
-
-    return stim.PauliString("".join(pauli_str))
+    pauli_str = stim.PauliString(n_qubits)
+    if ps.sign == Sign.MINUS:
+        pauli_str *= -1
+    for node, axis in ps.axes.items():
+        pauli_str[node] = axis.name
+    return pauli_str

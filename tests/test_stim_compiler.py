@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import stim
 from graphix.circ_ext.extraction import PauliString
-from graphix.fundamentals import Sign
+from graphix.fundamentals import Axis, Sign
 from graphix.measurements import Measurement
 from graphix.opengraph import OpenGraph
 from graphix.parameter import Placeholder
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 class TestStimCliffordPass:
     def test_pauli_string_to_stim(self) -> None:
-        p_str = PauliString(x_nodes={1, 4}, y_nodes={2}, z_nodes={5}, sign=Sign.MINUS)
+        p_str = PauliString({1: Axis.X, 4: Axis.X, 2: Axis.Y, 5: Axis.Z}, Sign.MINUS)
 
         stim_str = pauli_string_to_stim(p_str, n_qubits=7)
 
