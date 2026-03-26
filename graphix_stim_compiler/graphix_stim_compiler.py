@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal, TypeAlias
 
 import stim
-from graphix.fundamentals import Sign
+from graphix.circ_ext.extraction import CliffordMap, PauliString
+from graphix.fundamentals import Axis, Sign
 
 if TYPE_CHECKING:
-    from graphix.circ_ext.extraction import CliffordMap, PauliString
     from graphix.transpiler import Circuit
 
     _SYNTH_METHOD: TypeAlias = Literal["elimination", "graph_state"]
@@ -108,9 +108,9 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
 
 
 def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
-    """Transform a :class:`graphix.circ_extraction.extraction.PauliString` into a :class:`stim.PauliString` instance.
+    """Transform a :class:`graphix.circ_ext.extraction.PauliString` into a :class:`stim.PauliString` instance.
 
-    This method assumes that the qubit sets in ``ps`` are pairwise disjoint. It also assumes that the Pauli string has been remap, i.e., it is defined on qubit indices and not on node values. See :meth:`graphix.circ_ext.PauliString.remap` for additional information.
+    This function assumes that the Pauli string has been remap, i.e., it is defined on qubit indices and not on node values. See :meth:`graphix.circ_ext.PauliString.remap` for additional information.
 
     Parameters
     ----------
@@ -131,7 +131,7 @@ def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
 
     Notes
     -----
-    Qubits not appearing in ``ps.x_nodes | ps.y_nodes | ps.z_nodes`` are assigned the identity operator in the returned `stim.PauliString`.
+    Qubits not appearing in ``ps.axes.keys`` are assigned the identity operator in the returned `stim.PauliString`.
     """
     if not all(0 <= node < n_qubits for node in ps.axes):
         raise ValueError("The Pauli string contains qubit indices beyond the circuit's width.")
@@ -142,3 +142,79 @@ def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
     for node, axis in ps.axes.items():
         pauli_str[node] = axis.name
     return pauli_str
+
+
+def stim_to_pauli_string(ps: stim.PauliString) -> tuple[PauliString, int]:
+    """Transform a :class:`stim.PauliString` into a :class:`graphix.circ_ext.extraction.PauliString` instance.
+
+    This function is the inverse of :func:`pauli_string_to_stim`.
+
+    Parameters
+    ----------
+    stim.PauliString
+        The Pauli string in `stim` format.
+
+    Returns
+    -------
+    graphix.circ_ext.extraction.PauliString
+        Converted Pauli string.
+    int
+        Width of the circuit on which the Pauli string is defined.
+
+    Notes
+    -----
+    Qubits with the identity operator in the input `stim.PauliString` do not appear in the returned ``PauliString.axes.keys``.
+    """
+    axes: dict[int, Axis] = {}
+    # "stim.PauliString" has no attribute "__iter__"
+    # (but __len__ and __getitem__)
+    pauli: int
+    for q, pauli in enumerate(ps):  # type: ignore[arg-type]
+        match pauli:
+            case 1:
+                axes[q] = Axis.X
+            case 2:
+                axes[q] = Axis.Y
+            case 3:
+                axes[q] = Axis.Z
+
+    sign = Sign.PLUS if ps.sign == 1 else Sign.MINUS
+
+    return PauliString(axes, sign), len(ps)
+
+
+def stim_tableau_to_cm(tab: stim.Tableau) -> CliffordMap:
+    """Convert a Stim Tableau into a CliffordMap representation.
+
+    This function extracts the X and Z stabilizer mappings from a
+    :class:`stim.Tableau` object and converts them into dictionaries mapping
+    qubit indices to corresponding :class:`graphix.circ_ext.extraction.PauliString` objects. The resulting mappings are used to construct a :class:`graphix.circ_ext.extraction.CliffordMap` with identical input and output qubit ordering.
+
+    Parameters
+    ----------
+    tab : stim.Tableau
+        A Stim tableau representing a Clifford operation on ``n`` qubits.
+
+    Returns
+    -------
+    graphix.circ_ext.extraction.CliffordMap
+
+    Raises
+    ------
+    AssertionError
+        If the number of qubits inferred from a Pauli string does not
+        match the tableau size.
+    """
+    nqubits = len(tab)
+
+    x_map: dict[int, PauliString] = {}
+    z_map: dict[int, PauliString] = {}
+
+    for mapping, stim_mapping in zip([x_map, z_map], [tab.x_output, tab.z_output], strict=True):
+        for q in range(nqubits):
+            mapping[q], n = stim_to_pauli_string(stim_mapping(q))
+            assert nqubits == n
+
+    qubit_list = list(range(nqubits))
+
+    return CliffordMap(x_map=x_map, z_map=z_map, input_nodes=qubit_list, output_nodes=qubit_list)
