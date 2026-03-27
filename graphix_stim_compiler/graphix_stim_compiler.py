@@ -87,7 +87,7 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
 
     stim_circuit = to_stim_circuit(clifford_map, method="elimination")  # Gate set: H, S, CX
 
-    # "Circuit" has no attribute "__iter__"
+    # "stim.Circuit" has no attribute "__iter__"
     # (but __len__ and __getitem__)
     instruction: stim.CircuitInstruction
     for instruction in stim_circuit:  # type: ignore[attr-defined]
