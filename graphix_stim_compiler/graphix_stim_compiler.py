@@ -21,10 +21,10 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
 
     Parameters
     ----------
-    pexp_dag: PauliExponentialDAG
-        The Pauli exponential rotation to be added to the circuit. Its Pauli strings are assumed to be defined on qubit indices.
+    clifford_map: CliffordMap
+        The Clifford map to be transpiled. Its Pauli strings are assumed to be defined on qubit indices.
     circuit : Circuit
-        The circuit to which the operation is added. The input circuit is assumed to be compatible with ``pexp_dag.output_nodes``.
+        The circuit to which the operation is added. The input circuit is assumed to be compatible with ``CliffordMap.input_nodes`` and ``CliffordMap.output_nodes``.
 
     Notes
     -----
@@ -52,7 +52,7 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
         """
         if len(clifford_map.input_nodes) != len(clifford_map.output_nodes):
             raise NotImplementedError(
-                "StimCliffordPass does not support circuit compilation if the number of input and output nodes is different (isometry)."
+                ":func:`cm_stim_pass` does not support circuit compilation if the number of input and output nodes is different (isometry)."
             )
 
         xs: list[stim.PauliString] = []
