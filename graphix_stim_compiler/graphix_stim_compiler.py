@@ -21,10 +21,10 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
 
     Parameters
     ----------
-    pexp_dag: PauliExponentialDAG
-        The Pauli exponential rotation to be added to the circuit. Its Pauli strings are assumed to be defined on qubit indices.
+    clifford_map: CliffordMap
+        The Clifford map to be transpiled. Its Pauli strings are assumed to be defined on qubit indices.
     circuit : Circuit
-        The circuit to which the operation is added. The input circuit is assumed to be compatible with ``pexp_dag.output_nodes``.
+        The circuit to which the operation is added. The input circuit is assumed to be compatible with ``CliffordMap.input_nodes`` and ``CliffordMap.output_nodes``.
 
     Notes
     -----
@@ -52,7 +52,7 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
         """
         if len(clifford_map.input_nodes) != len(clifford_map.output_nodes):
             raise NotImplementedError(
-                "StimCliffordPass does not support circuit compilation if the number of input and output nodes is different (isometry)."
+                ":func:`cm_stim_pass` does not support circuit compilation if the number of input and output nodes is different (isometry)."
             )
 
         xs: list[stim.PauliString] = []
@@ -87,7 +87,7 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
 
     stim_circuit = to_stim_circuit(clifford_map, method="elimination")  # Gate set: H, S, CX
 
-    # "Circuit" has no attribute "__iter__"
+    # "stim.Circuit" has no attribute "__iter__"
     # (but __len__ and __getitem__)
     instruction: stim.CircuitInstruction
     for instruction in stim_circuit:  # type: ignore[attr-defined]
@@ -108,9 +108,9 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
 
 
 def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
-    """Transform a :class:`graphix.circ_extraction.extraction.PauliString` into a :class:`stim.PauliString` instance.
+    """Transform a :class:`graphix.circ_ext.extraction.PauliString` into a :class:`stim.PauliString` instance.
 
-    This method assumes that the qubit sets in ``ps`` are pairwise disjoint. It also assumes that the Pauli string has been remap, i.e., it is defined on qubit indices and not on node values. See :meth:`graphix.circ_ext.PauliString.remap` for additional information.
+    This function assumes that the Pauli string has been remap, i.e., it is defined on qubit indices and not on node values. See :meth:`graphix.circ_ext.PauliString.remap` for additional information.
 
     Parameters
     ----------
@@ -131,7 +131,7 @@ def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
 
     Notes
     -----
-    Qubits not appearing in ``ps.x_nodes | ps.y_nodes | ps.z_nodes`` are assigned the identity operator in the returned `stim.PauliString`.
+    Qubits not appearing in ``ps.axes.keys`` are assigned the identity operator in the returned `stim.PauliString`.
     """
     if not all(0 <= node < n_qubits for node in ps.axes):
         raise ValueError("The Pauli string contains qubit indices beyond the circuit's width.")
