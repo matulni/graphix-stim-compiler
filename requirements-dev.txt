@@ -1,0 +1,13 @@
+# Lint/format
+mypy==1.18.2
+pyright
+ruff==0.14.5
+
+# Stubs
+types-networkx==3.5.0.20250712
+types-setuptools
+
+# Tests
+# Keep in sync with CI
+nox==2025.11.12
+pytest

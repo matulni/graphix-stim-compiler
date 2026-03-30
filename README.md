@@ -2,4 +2,39 @@
 
 Clifford compilation pass using stim functionalities.
 
+This compilation pass together with the new tools implemented in `matulni/graphix.git@circuit-extraction` allow to do a round-trip conversion circuit -> MBQC pattern -> circuit.
+
+### Example
+```python
+from graphix_stim_compiler import cm_stim_pass
+
+from graphix.transpiler import Circuit
+from graphix.fundamentals import ANGLE_PI
+
+import numpy as np
+
+qc = Circuit(2)
+qc.cnot(1, 0)
+qc.rz(0, 0.2 * ANGLE_PI)
+qc.h(0)
+qc.rx(1, 0.2 * ANGLE_PI)
+
+pattern = qc.transpile().pattern
+
+qc_extracted = pattern.extract_opengraph().infer_pauli_measurements().extract_pauli_flow().extract_circuit().to_circuit(cm_cp=cm_stim_pass)
+
+s_ref = qc.simulate_statevector().statevec
+s_extracted = qc_extracted.simulate_statevector().statevec
+assert s_ref.isclose(s_extracted)
+```
+
+### Installation
+
+`git clone` the repository and run
+
+```bash
+cd graphix-stim-compiler
+pip install .
+```
+
 
