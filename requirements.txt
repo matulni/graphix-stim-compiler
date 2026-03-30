@@ -1,2 +1,2 @@
-graphix # @ git+https://github.com/matulni/graphix.git@master #clifford_extraction
+graphix @ git+https://github.com/TeamGraphix/graphix.git@master
 stim>=1.15,<2
