@@ -163,11 +163,11 @@ def stim_to_pauli_string(ps: stim.PauliString) -> tuple[PauliString, int]:
 
     Notes
     -----
-    Qubits with the identity operator in the input `stim.PauliString` do not appear in the returned ``PauliString.axes.keys``.
+    Qubits with the identity operator in the input ``stim.PauliString`` do not appear in the returned ``PauliString.axes.keys``.
     """
     axes: dict[int, Axis] = {}
-    # "stim.PauliString" has no attribute "__iter__"
-    # (but __len__ and __getitem__)
+    # ``stim.PauliString`` has no attribute ``__iter__``
+    # (but it has ``__len__`` and ``__getitem__``)
     pauli: int
     for q, pauli in enumerate(ps):  # type: ignore[arg-type]
         match pauli:
@@ -186,9 +186,11 @@ def stim_to_pauli_string(ps: stim.PauliString) -> tuple[PauliString, int]:
 def stim_tableau_to_cm(tab: stim.Tableau) -> CliffordMap:
     """Convert a Stim Tableau into a CliffordMap representation.
 
-    This function extracts the X and Z stabilizer mappings from a
-    :class:`stim.Tableau` object and converts them into dictionaries mapping
-    qubit indices to corresponding :class:`graphix.circ_ext.extraction.PauliString` objects. The resulting mappings are used to construct a :class:`graphix.circ_ext.extraction.CliffordMap` with identical input and output qubit ordering.
+    This function extracts the X and Z stabilizer mappings from a :class:`stim.Tableau`
+    object and converts them into dictionaries mapping qubit indices to corresponding
+    :class:`graphix.circ_ext.extraction.PauliString` objects. The resulting mappings are
+    used to construct a :class:`graphix.circ_ext.extraction.CliffordMap` with identical
+    input and output qubit ordering.
 
     Parameters
     ----------
