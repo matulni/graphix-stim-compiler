@@ -33,38 +33,6 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
     Gate set: H, S, CNOT
     """
 
-    def clifford_map_to_stim_tableau(clifford_map: CliffordMap) -> stim.Tableau:
-        """Transpile the Clifford map into a stim tableau.
-
-        Parameters
-        ----------
-        clifford_map: CliffordMap
-            The Clifford map to be transpiled.
-
-        Returns
-        -------
-        stim.Tableau
-
-        Raises
-        ------
-        NotImplementedError
-            If ``len(self.input_nodes) != len(self.output_nodes)``.
-        """
-        if len(clifford_map.input_nodes) != len(clifford_map.output_nodes):
-            raise NotImplementedError(
-                ":func:`cm_stim_pass` does not support circuit compilation if the number of input and output nodes is different (isometry)."
-            )
-
-        xs: list[stim.PauliString] = []
-        zs: list[stim.PauliString] = []
-        n_qubits = len(clifford_map.output_nodes)
-
-        for qubit in range(n_qubits):
-            xs.append(pauli_string_to_stim(clifford_map.x_map[qubit], n_qubits))
-            zs.append(pauli_string_to_stim(clifford_map.z_map[qubit], n_qubits))
-
-        return stim.Tableau.from_conjugated_generators(xs=xs, zs=zs)
-
     def to_stim_circuit(clifford_map: CliffordMap, method: _SYNTH_METHOD) -> stim.Circuit:
         """Transpile the Clifford map into a stim circuit.
 
@@ -83,7 +51,7 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
         -----
         See https://github.com/quantumlib/Stim/blob/main/doc/python_api_reference_vDev.md#stim.Tableau.to_circuit for additional information.
         """
-        return clifford_map_to_stim_tableau(clifford_map).to_circuit(method)
+        return cm_to_stim_tableau(clifford_map).to_circuit(method)
 
     stim_circuit = to_stim_circuit(clifford_map, method="elimination")  # Gate set: H, S, CX
 
@@ -183,8 +151,41 @@ def stim_to_pauli_string(ps: stim.PauliString) -> tuple[PauliString, int]:
     return PauliString(axes, sign), len(ps)
 
 
+def cm_to_stim_tableau(clifford_map: CliffordMap) -> stim.Tableau:
+    """Transpile the Clifford map into a Stim Tableau.
+
+    Parameters
+    ----------
+    clifford_map: CliffordMap
+        The Clifford map to be transpiled.
+
+    Returns
+    -------
+    stim.Tableau
+
+    Raises
+    ------
+    NotImplementedError
+        If ``len(self.input_nodes) != len(self.output_nodes)``.
+    """
+    if len(clifford_map.input_nodes) != len(clifford_map.output_nodes):
+        raise NotImplementedError(
+            ":class:`stim.Tableau` does not support isometries (Clifford maps with larger number of outputs than inputs)."
+        )
+
+    xs: list[stim.PauliString] = []
+    zs: list[stim.PauliString] = []
+    n_qubits = len(clifford_map.output_nodes)
+
+    for qubit in range(n_qubits):
+        xs.append(pauli_string_to_stim(clifford_map.x_map[qubit], n_qubits))
+        zs.append(pauli_string_to_stim(clifford_map.z_map[qubit], n_qubits))
+
+    return stim.Tableau.from_conjugated_generators(xs=xs, zs=zs)
+
+
 def stim_tableau_to_cm(tab: stim.Tableau) -> CliffordMap:
-    """Convert a Stim Tableau into a CliffordMap representation.
+    """Convert a Stim Tableau into a Clifford map representation.
 
     This function extracts the X and Z stabilizer mappings from a :class:`stim.Tableau`
     object and converts them into dictionaries mapping qubit indices to corresponding
