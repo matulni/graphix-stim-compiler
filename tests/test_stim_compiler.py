@@ -22,9 +22,9 @@ if TYPE_CHECKING:
 
 class TestStimCliffordPass:
     def test_pauli_string_to_stim(self) -> None:
-        p_str = PauliString({1: Axis.X, 4: Axis.X, 2: Axis.Y, 5: Axis.Z}, Sign.MINUS)
+        p_str = PauliString(dim=7, axes={1: Axis.X, 4: Axis.X, 2: Axis.Y, 5: Axis.Z}, sign=Sign.MINUS)
 
-        stim_str = pauli_string_to_stim(p_str, n_qubits=7)
+        stim_str = pauli_string_to_stim(p_str)
 
         assert stim_str == stim.PauliString("-_XY_XZ_")
 

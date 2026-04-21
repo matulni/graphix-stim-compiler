@@ -60,8 +60,8 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
         n_qubits = len(clifford_map.output_nodes)
 
         for qubit in range(n_qubits):
-            xs.append(pauli_string_to_stim(clifford_map.x_map[qubit], n_qubits))
-            zs.append(pauli_string_to_stim(clifford_map.z_map[qubit], n_qubits))
+            xs.append(pauli_string_to_stim(clifford_map.x_map[qubit]))
+            zs.append(pauli_string_to_stim(clifford_map.z_map[qubit]))
 
         return stim.Tableau.from_conjugated_generators(xs=xs, zs=zs)
 
@@ -107,7 +107,7 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
                     circuit.s(qubit.qubit_value)
 
 
-def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
+def pauli_string_to_stim(ps: PauliString) -> stim.PauliString:
     """Transform a :class:`graphix.circ_ext.extraction.PauliString` into a :class:`stim.PauliString` instance.
 
     This function assumes that the Pauli string has been remap, i.e., it is defined on qubit indices and not on node values. See :meth:`graphix.circ_ext.PauliString.remap` for additional information.
@@ -116,27 +116,17 @@ def pauli_string_to_stim(ps: PauliString, n_qubits: int) -> stim.PauliString:
     ----------
     ps: PauliString
         The Pauli string to be transformed.
-    n_qubits : int
-        Width of the circuit on which the Pauli string is defined.
 
     Returns
     -------
     stim.PauliString
         The Pauli string in `stim` format.
 
-    Raises
-    ------
-    ValueError
-        If the Pauli string is not compatible with ``n_qubits``.
-
     Notes
     -----
     Qubits not appearing in ``ps.axes.keys`` are assigned the identity operator in the returned `stim.PauliString`.
     """
-    if not all(0 <= node < n_qubits for node in ps.axes):
-        raise ValueError("The Pauli string contains qubit indices beyond the circuit's width.")
-
-    pauli_str = stim.PauliString(n_qubits)
+    pauli_str = stim.PauliString(ps.dim)
     if ps.sign == Sign.MINUS:
         pauli_str *= -1
     for node, axis in ps.axes.items():
