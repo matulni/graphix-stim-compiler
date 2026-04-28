@@ -17,12 +17,12 @@ if TYPE_CHECKING:
 def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
     """Add a Clifford map to a circuit by using stim's tableau synthesis.
 
-    The input circuit is modified in-place. This function assumes that the Clifford Map has been remap, i.e., its Pauli strings are defined on qubit indices instead of output nodes. See :meth:`PauliString.remap` for additional information.
+    The input circuit is modified in-place.
 
     Parameters
     ----------
     clifford_map: CliffordMap
-        The Clifford map to be transpiled. Its Pauli strings are assumed to be defined on qubit indices.
+        The Clifford map to be transpiled.
     circuit : Circuit
         The circuit to which the operation is added. The input circuit is assumed to be compatible with ``CliffordMap.input_nodes`` and ``CliffordMap.output_nodes``.
 
@@ -57,11 +57,10 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
 
         xs: list[stim.PauliString] = []
         zs: list[stim.PauliString] = []
-        n_qubits = len(clifford_map.output_nodes)
 
-        for qubit in range(n_qubits):
-            xs.append(pauli_string_to_stim(clifford_map.x_map[qubit]))
-            zs.append(pauli_string_to_stim(clifford_map.z_map[qubit]))
+        for x, z in zip(clifford_map.x_map, clifford_map.z_map, strict=True):
+            xs.append(pauli_string_to_stim(x))
+            zs.append(pauli_string_to_stim(z))
 
         return stim.Tableau.from_conjugated_generators(xs=xs, zs=zs)
 
@@ -110,8 +109,6 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
 def pauli_string_to_stim(ps: PauliString) -> stim.PauliString:
     """Transform a :class:`graphix.circ_ext.extraction.PauliString` into a :class:`stim.PauliString` instance.
 
-    This function assumes that the Pauli string has been remap, i.e., it is defined on qubit indices and not on node values. See :meth:`graphix.circ_ext.PauliString.remap` for additional information.
-
     Parameters
     ----------
     ps: PauliString
@@ -129,6 +126,6 @@ def pauli_string_to_stim(ps: PauliString) -> stim.PauliString:
     pauli_str = stim.PauliString(ps.dim)
     if ps.sign == Sign.MINUS:
         pauli_str *= -1
-    for node, axis in ps.axes.items():
-        pauli_str[node] = axis.name
+    for qubit, axis in ps.axes.items():
+        pauli_str[qubit] = axis.name
     return pauli_str
