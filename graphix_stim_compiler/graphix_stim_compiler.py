@@ -55,12 +55,8 @@ def cm_stim_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
                 ":func:`cm_stim_pass` does not support circuit compilation if the number of input and output nodes is different (isometry)."
             )
 
-        xs: list[stim.PauliString] = []
-        zs: list[stim.PauliString] = []
-
-        for x, z in zip(clifford_map.x_map, clifford_map.z_map, strict=True):
-            xs.append(pauli_string_to_stim(x))
-            zs.append(pauli_string_to_stim(z))
+        xs = [pauli_string_to_stim(x) for x in clifford_map.x_map]
+        zs = [pauli_string_to_stim(z) for z in clifford_map.z_map]
 
         return stim.Tableau.from_conjugated_generators(xs=xs, zs=zs)
 
