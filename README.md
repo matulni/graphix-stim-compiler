@@ -21,7 +21,7 @@ qc.rx(1, 0.2 * ANGLE_PI)
 
 pattern = qc.transpile().pattern
 
-qc_extracted = pattern.extract_opengraph().infer_pauli_measurements().extract_pauli_flow().extract_circuit().to_circuit(cm_cp=cm_stim_pass)
+qc_extracted = pattern.to_opengraph().infer_pauli_measurements().to_pauliflow().extract_circuit().to_circuit(cm_cp=cm_stim_pass)
 
 s_ref = qc.simulate_statevector().statevec
 s_extracted = qc_extracted.simulate_statevector().statevec
