@@ -38,7 +38,7 @@ class TestExtraction:
         circuit_ref = rand_circuit(nqubits, depth, rng, use_ccx=False)
         pattern = circuit_ref.transpile().pattern
 
-        circuit = pattern.extract_opengraph().extract_pauli_flow().extract_circuit().to_circuit(cm_cp=cm_stim_pass)
+        circuit = pattern.to_opengraph().to_pauliflow().extract_circuit().to_circuit(cm_cp=cm_stim_pass)
 
         s_ref = circuit.simulate_statevector().statevec
         s_test = circuit_ref.simulate_statevector().statevec
@@ -129,9 +129,9 @@ class TestExtraction:
     def test_extract_og(self, test_case: OpenGraph[Measurement]) -> None:
         pattern = test_case.to_pattern()
         circuit = (
-            pattern.extract_opengraph()
+            pattern.to_opengraph()
             .infer_pauli_measurements()
-            .extract_pauli_flow()
+            .to_pauliflow()
             .extract_circuit()
             .to_circuit(cm_cp=cm_stim_pass)
         )
@@ -153,7 +153,7 @@ class TestExtraction:
             },
         )
         pattern = og.to_pattern()
-        circuit = og.extract_gflow().extract_circuit().to_circuit(cm_cp=cm_stim_pass)
+        circuit = og.to_gflow().extract_circuit().to_circuit(cm_cp=cm_stim_pass)
 
         state = circuit.simulate_statevector().statevec
         state_ref = pattern.simulate_pattern()
@@ -173,7 +173,7 @@ class TestExtraction:
                 3: Measurement.XY(0.3),
                 4: Measurement.XY(alpha),
             },
-        ).extract_pauli_flow()
+        ).to_pauliflow()
 
         # Substitute parameter at the level of the extracted circuit
         qc1 = flow.extract_circuit().to_circuit(cm_cp=cm_stim_pass)
